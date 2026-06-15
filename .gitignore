@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output
+.next/
+dist/
+build/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Temp
+tmp/
+temp/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
