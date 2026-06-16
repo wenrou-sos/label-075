@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { inventory, consumables } from '@/lib/mock-data';
 import type { Inventory } from '@/lib/types';
 
+export const revalidate = 0;
+
 interface NearExpiryItem extends Inventory {
   daysLeft: number;
   warningLevel: 'critical' | 'warning' | 'notice';
@@ -33,11 +35,18 @@ export async function GET() {
       warningLevel: item.daysLeft <= 30 ? 'critical' : item.daysLeft <= 90 ? 'warning' : 'notice',
     }));
 
-  return NextResponse.json({
-    total: nearExpiryItems.length,
-    criticalCount: nearExpiryItems.filter((i) => i.warningLevel === 'critical').length,
-    warningCount: nearExpiryItems.filter((i) => i.warningLevel === 'warning').length,
-    noticeCount: nearExpiryItems.filter((i) => i.warningLevel === 'notice').length,
-    items: nearExpiryItems,
-  });
+  return NextResponse.json(
+    {
+      total: nearExpiryItems.length,
+      criticalCount: nearExpiryItems.filter((i) => i.warningLevel === 'critical').length,
+      warningCount: nearExpiryItems.filter((i) => i.warningLevel === 'warning').length,
+      noticeCount: nearExpiryItems.filter((i) => i.warningLevel === 'notice').length,
+      items: nearExpiryItems,
+    },
+    {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    }
+  );
 }

@@ -51,7 +51,9 @@ export default function NotificationBell() {
   const fetchNearExpiry = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/inventory/near-expiry");
+      const res = await fetch("/api/inventory/near-expiry", {
+        cache: "no-store",
+      });
       const json: NearExpiryResponse = await res.json();
       setData(json);
     } catch {
@@ -85,8 +87,11 @@ export default function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => {
-          setOpen(!open);
-          if (!open && !data) fetchNearExpiry();
+          const willOpen = !open;
+          setOpen(willOpen);
+          if (willOpen) {
+            fetchNearExpiry();
+          }
         }}
         className="relative p-2 rounded-lg hover:bg-border/50 transition-colors text-text-secondary hover:text-text"
         title="近效期预警"
