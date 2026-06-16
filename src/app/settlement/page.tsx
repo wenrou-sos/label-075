@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DollarSign, Clock, FileText, Eye, CheckCircle } from "lucide-react";
+import { DollarSign, Clock, FileText, Eye, CheckCircle, Download } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import DataTable, { Column } from "@/components/ui/DataTable";
+import { exportToCsv, type CsvColumn } from "@/lib/csv-export";
 import type { Settlement } from "@/lib/types";
 
 interface DepartmentSummary {
@@ -17,6 +18,13 @@ interface DepartmentSummary {
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", minimumFractionDigits: 0 }).format(v);
+
+const statusTextMap: Record<string, string> = {
+  draft: "草稿",
+  confirmed: "已确认",
+  paid: "已支付",
+  cancelled: "已取消",
+};
 
 function SkeletonRow() {
   return (
@@ -72,6 +80,25 @@ export default function SettlementPage() {
     }
   };
 
+  const handleExportDepartment = () => {
+    const columns: CsvColumn<DepartmentSummary>[] = [
+      { key: "departmentName", header: "科室名称" },
+      { key: "itemCount", header: "耗材项数", render: (row) => row.itemCount || 0 },
+      { key: "totalAmount", header: "领用金额", render: (row) => formatCurrency(row.totalAmount) },
+    ];
+    exportToCsv(deptData, columns, `${month}-科室领用统计.csv`);
+  };
+
+  const handleExportSupplier = () => {
+    const columns: CsvColumn<Settlement>[] = [
+      { key: "supplierName", header: "供应商名称", render: (row) => row.supplierName || "-" },
+      { key: "month", header: "月份" },
+      { key: "totalAmount", header: "结算金额", render: (row) => formatCurrency(row.totalAmount) },
+      { key: "status", header: "状态", render: (row) => statusTextMap[row.status] || row.status },
+    ];
+    exportToCsv(settlements, columns, `${month}-供应商结算.csv`);
+  };
+
   const deptColumns: Column<DepartmentSummary>[] = [
     { key: "departmentName", header: "科室" },
     { key: "itemCount", header: "耗材项数", render: (row) => row.itemCount || 0 },
@@ -95,16 +122,25 @@ export default function SettlementPage() {
         title="结算管理"
         description="科室领用统计与供应商结算管理"
         actions={
-          activeTab === "supplier" ? (
+          <div className="flex items-center gap-2">
+            {activeTab === "supplier" && (
+              <button
+                onClick={handleGenerateSettlement}
+                disabled={generating}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-light transition-colors disabled:opacity-50"
+              >
+                <FileText size={16} />
+                {generating ? "生成中..." : "生成结算单"}
+              </button>
+            )}
             <button
-              onClick={handleGenerateSettlement}
-              disabled={generating}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-light transition-colors disabled:opacity-50"
+              onClick={activeTab === "department" ? handleExportDepartment : handleExportSupplier}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-border text-text-secondary text-sm font-medium rounded-lg hover:bg-bg hover:text-text transition-colors"
             >
-              <FileText size={16} />
-              {generating ? "生成中..." : "生成结算单"}
+              <Download size={16} />
+              导出 CSV
             </button>
-          ) : undefined
+          </div>
         }
       />
 
