@@ -34,6 +34,10 @@ export async function POST(request: Request) {
   >();
 
   usageRecords.forEach((usage) => {
+    const usageDate = usage.usageDate || usage.createdAt || '';
+    const usageMonth = usageDate.substring(0, 7);
+    if (usageMonth !== month) return;
+
     usage.items.forEach((item) => {
       if (!item.isImplant) return;
       const inv = inventoryMap.get(item.inventoryId);
@@ -92,5 +96,6 @@ export async function POST(request: Request) {
 
   settlements.push(...newSettlements);
 
-  return NextResponse.json(settlements);
+  const filtered = settlements.filter((s) => s.month === month);
+  return NextResponse.json(filtered);
 }

@@ -70,9 +70,13 @@ export default function SettlementPage() {
   const handleGenerateSettlement = async () => {
     setGenerating(true);
     try {
-      const res = await fetch("/api/settlement/supplier", { method: "POST" });
+      const res = await fetch("/api/settlement/supplier", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month }),
+      });
       if (res.ok) {
-        const updated = await fetch(`/api/settlement/supplier?month=${month}`).then((r) => r.json());
+        const updated = await res.json();
         setSettlements(updated);
       }
     } finally {
@@ -96,14 +100,7 @@ export default function SettlementPage() {
       { key: "totalAmount", header: "结算金额", render: (row) => formatCurrency(row.totalAmount) },
       { key: "status", header: "状态", render: (row) => statusTextMap[row.status] || row.status },
     ];
-    const uniqueMonths = [...new Set(settlements.map((s) => s.month))].sort();
-    const monthLabel =
-      uniqueMonths.length === 0
-        ? month
-        : uniqueMonths.length === 1
-          ? uniqueMonths[0]
-          : `${uniqueMonths[0]}至${uniqueMonths[uniqueMonths.length - 1]}`;
-    exportToCsv(settlements, columns, `${monthLabel}-供应商结算.csv`);
+    exportToCsv(settlements, columns, `${month}-供应商结算.csv`);
   };
 
   const deptColumns: Column<DepartmentSummary>[] = [
