@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { inventory } from '@/lib/mock-data';
+import { inventory, consumables } from '@/lib/mock-data';
 import type { Inventory } from '@/lib/types';
 
 interface NearExpiryItem extends Inventory {
@@ -11,12 +11,20 @@ export async function GET() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const consumableMap = new Map(consumables.map((c) => [c.id, c]));
+
   const nearExpiryItems: NearExpiryItem[] = inventory
     .map((item) => {
       const expiry = new Date(item.expiryDate);
       expiry.setHours(0, 0, 0, 0);
       const daysLeft = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      return { ...item, daysLeft };
+      const consumable = consumableMap.get(item.consumableId);
+      return {
+        ...item,
+        consumableName: consumable?.name ?? item.consumableName,
+        specification: consumable?.specification ?? item.specification,
+        daysLeft,
+      };
     })
     .filter((item) => item.daysLeft <= 180)
     .sort((a, b) => a.daysLeft - b.daysLeft)

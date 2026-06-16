@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { deliveries, inventory, suppliers } from '@/lib/mock-data';
+import { deliveries, inventory, suppliers, consumables } from '@/lib/mock-data';
 
 export async function PUT(
   request: Request,
@@ -16,6 +16,8 @@ export async function PUT(
     return NextResponse.json({ error: '送货单不存在' }, { status: 404 });
   }
 
+  const consumableMap = new Map(consumables.map((c) => [c.id, c]));
+
   const updatedItems = delivery.items.map((item) => {
     const accepted = acceptedItems.find((a) => a.itemId === item.id);
     if (accepted) {
@@ -27,21 +29,24 @@ export async function PUT(
   const supplier = suppliers.find((s) => s.id === delivery.supplierId);
   const newInventoryEntries = updatedItems
     .filter((item) => item.acceptedQty > 0)
-    .map((item, index) => ({
-      id: `inv${Date.now()}${index}`,
-      consumableId: item.consumableId,
-      consumableName: item.consumableName,
-      specification: item.specification,
-      batchNo: item.batchNo,
-      expiryDate: item.expiryDate,
-      quantity: item.acceptedQty,
-      location: '待分配',
-      supplierId: delivery.supplierId,
-      supplierName: delivery.supplierName,
-      isConsignment: supplier?.isConsignment ?? false,
-      unitPrice: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-    }));
+    .map((item, index) => {
+      const consumable = consumableMap.get(item.consumableId);
+      return {
+        id: `inv${Date.now()}${index}`,
+        consumableId: item.consumableId,
+        consumableName: consumable?.name ?? item.consumableName,
+        specification: consumable?.specification ?? item.specification,
+        batchNo: item.batchNo,
+        expiryDate: item.expiryDate,
+        quantity: item.acceptedQty,
+        location: '待分配',
+        supplierId: delivery.supplierId,
+        supplierName: delivery.supplierName,
+        isConsignment: supplier?.isConsignment ?? false,
+        unitPrice: consumable?.unitPrice ?? 0,
+        createdAt: new Date().toISOString().split('T')[0],
+      };
+    });
 
   inventory.push(...newInventoryEntries);
 

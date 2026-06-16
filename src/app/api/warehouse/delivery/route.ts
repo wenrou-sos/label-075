@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { deliveries } from '@/lib/mock-data';
+import { deliveries, consumables } from '@/lib/mock-data';
 import type { Delivery } from '@/lib/types';
 
 export async function GET() {
@@ -16,6 +16,8 @@ export async function POST(request: Request) {
     items: { consumableId: string; batchNo: string; expiryDate: string; deliveredQty: number }[];
   };
 
+  const consumableMap = new Map(consumables.map((c) => [c.id, c]));
+
   const newDelivery: Delivery = {
     id: `dl${Date.now()}`,
     purchaseOrderId,
@@ -23,15 +25,20 @@ export async function POST(request: Request) {
     supplierName,
     deliveryNoteNo,
     status: 'pending',
-    items: items.map((item, index) => ({
-      id: `dl${Date.now()}i${index}`,
-      deliveryId: `dl${Date.now()}`,
-      consumableId: item.consumableId,
-      batchNo: item.batchNo,
-      expiryDate: item.expiryDate,
-      deliveredQty: item.deliveredQty,
-      acceptedQty: 0,
-    })),
+    items: items.map((item, index) => {
+      const consumable = consumableMap.get(item.consumableId);
+      return {
+        id: `dl${Date.now()}i${index}`,
+        deliveryId: `dl${Date.now()}`,
+        consumableId: item.consumableId,
+        consumableName: consumable?.name,
+        specification: consumable?.specification,
+        batchNo: item.batchNo,
+        expiryDate: item.expiryDate,
+        deliveredQty: item.deliveredQty,
+        acceptedQty: 0,
+      };
+    }),
     createdAt: new Date().toISOString().split('T')[0],
   };
 
