@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requisitions } from '@/lib/mock-data';
+import { requisitions, inventory } from '@/lib/mock-data';
 
 export async function PUT(
   request: Request,
@@ -30,13 +30,28 @@ export async function PUT(
 
   const allFulfilled = updatedItems.every((i) => i.status === 'fulfilled');
   const anyFulfilled = updatedItems.some((i) => i.fulfilledQty > 0);
+  const newStatus = allFulfilled ? 'fulfilled' as const : anyFulfilled ? 'partial' as const : 'pending' as const;
+
+  const updatedRequisition = {
+    ...requisition,
+    items: updatedItems,
+    status: newStatus,
+  };
+
+  const reqIndex = requisitions.findIndex((r) => r.id === id);
+  if (reqIndex >= 0) {
+    requisitions[reqIndex] = updatedRequisition;
+  }
+
+  fulfillItems.forEach((fi) => {
+    const invItem = inventory.find((i) => i.id === fi.inventoryId);
+    if (invItem) {
+      invItem.quantity = Math.max(0, invItem.quantity - fi.fulfilledQty);
+    }
+  });
 
   return NextResponse.json({
-    requisition: {
-      ...requisition,
-      items: updatedItems,
-      status: allFulfilled ? 'fulfilled' as const : anyFulfilled ? 'partial' as const : 'pending' as const,
-    },
+    requisition: updatedRequisition,
     inventoryDeducted: fulfillItems.map((fi) => ({
       inventoryId: fi.inventoryId,
       deductedQty: fi.fulfilledQty,

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { deliveries } from '@/lib/mock-data';
+import { deliveries, inventory, suppliers } from '@/lib/mock-data';
 
 export async function PUT(
   request: Request,
@@ -24,6 +24,7 @@ export async function PUT(
     return item;
   });
 
+  const supplier = suppliers.find((s) => s.id === delivery.supplierId);
   const newInventoryEntries = updatedItems
     .filter((item) => item.acceptedQty > 0)
     .map((item, index) => ({
@@ -37,12 +38,21 @@ export async function PUT(
       location: '待分配',
       supplierId: delivery.supplierId,
       supplierName: delivery.supplierName,
-      isConsignment: false,
+      isConsignment: supplier?.isConsignment ?? false,
+      unitPrice: 0,
       createdAt: new Date().toISOString().split('T')[0],
     }));
 
+  inventory.push(...newInventoryEntries);
+
+  const updatedDelivery = { ...delivery, items: updatedItems, status: 'accepted' as const };
+  const deliveryIndex = deliveries.findIndex((d) => d.id === id);
+  if (deliveryIndex >= 0) {
+    deliveries[deliveryIndex] = updatedDelivery;
+  }
+
   return NextResponse.json({
-    delivery: { ...delivery, items: updatedItems, status: 'accepted' },
+    delivery: updatedDelivery,
     inventoryAdded: newInventoryEntries,
   });
 }

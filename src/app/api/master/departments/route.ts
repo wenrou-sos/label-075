@@ -18,5 +18,6 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString().split('T')[0],
   };
 
+  departments.push(newDepartment);
   return NextResponse.json(newDepartment, { status: 201 });
 }

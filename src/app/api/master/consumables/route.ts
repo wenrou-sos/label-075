@@ -34,5 +34,6 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString().split('T')[0],
   };
 
+  consumables.push(newConsumable);
   return NextResponse.json(newConsumable, { status: 201 });
 }

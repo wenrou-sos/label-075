@@ -26,5 +26,6 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString().split('T')[0],
   };
 
+  suppliers.push(newSupplier);
   return NextResponse.json(newSupplier, { status: 201 });
 }

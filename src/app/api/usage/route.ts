@@ -39,5 +39,6 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString().split('T')[0],
   };
 
+  usageRecords.push(newRecord);
   return NextResponse.json(newRecord, { status: 201 });
 }

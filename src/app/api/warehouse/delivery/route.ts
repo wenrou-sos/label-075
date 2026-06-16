@@ -35,5 +35,6 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString().split('T')[0],
   };
 
+  deliveries.push(newDelivery);
   return NextResponse.json(newDelivery, { status: 201 });
 }

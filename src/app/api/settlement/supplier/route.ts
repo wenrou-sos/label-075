@@ -76,7 +76,7 @@ export async function POST() {
     });
   });
 
-  const combined = [...settlements, ...newSettlements];
+  settlements.push(...newSettlements);
 
-  return NextResponse.json(combined);
+  return NextResponse.json(settlements);
 }
