@@ -1,0 +1,225 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========== 基础数据模块 ==========
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  type      String   @default("clinical") // clinical | warehouse
+  createdAt DateTime @default(now())
+
+  purchasePlans PurchasePlan[]
+  requisitions  Requisition[]
+  usageRecords  UsageRecord[]
+}
+
+model Supplier {
+  id            String   @id @default(cuid())
+  name          String
+  code          String   @unique
+  contact       String
+  phone         String
+  isConsignment Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  consumables    Consumable[]
+  purchaseOrders PurchaseOrder[]
+  deliveries     Delivery[]
+  inventory      Inventory[]
+  settlements    Settlement[]
+}
+
+model Consumable {
+  id            String   @id @default(cuid())
+  name          String
+  specification String
+  model         String
+  category      String
+  unit          String
+  unitPrice     Decimal  @db.Decimal(12, 2)
+  isImplant     Boolean  @default(false)
+  supplierId    String
+  supplier      Supplier @relation(fields: [supplierId], references: [id])
+  createdAt     DateTime @default(now())
+
+  purchasePlanItems PurchasePlanItem[]
+  deliveryItems     DeliveryItem[]
+  inventory         Inventory[]
+  requisitionItems  RequisitionItem[]
+  usageRecordItems  UsageRecordItem[]
+  settlementItems   SettlementItem[]
+}
+
+// ========== 申购模块 ==========
+
+model PurchasePlan {
+  id           String   @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  status       String   @default("pending") // pending | approved | rejected | ordered
+  createdAt    DateTime @default(now())
+
+  items          PurchasePlanItem[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model PurchasePlanItem {
+  id             String       @id @default(cuid())
+  purchasePlanId String
+  purchasePlan   PurchasePlan @relation(fields: [purchasePlanId], references: [id], onDelete: Cascade)
+  consumableId   String
+  consumable     Consumable   @relation(fields: [consumableId], references: [id])
+  quantity       Int
+  urgency        String       @default("routine") // routine | urgent
+  status         String       @default("pending") // pending | approved | rejected
+  remark         String?
+}
+
+// ========== 采购订单模块 ==========
+
+model PurchaseOrder {
+  id             String       @id @default(cuid())
+  purchasePlanId String
+  purchasePlan   PurchasePlan @relation(fields: [purchasePlanId], references: [id])
+  supplierId     String
+  supplier       Supplier     @relation(fields: [supplierId], references: [id])
+  status         String       @default("pending") // pending | confirmed | delivered | completed
+  createdAt      DateTime     @default(now())
+
+  deliveries Delivery[]
+}
+
+// ========== 送货与验收模块 ==========
+
+model Delivery {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  supplierId      String
+  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+  deliveryNoteNo  String
+  status          String        @default("pending") // pending | accepted | partial | rejected
+  createdAt       DateTime      @default(now())
+
+  items DeliveryItem[]
+}
+
+model DeliveryItem {
+  id              String   @id @default(cuid())
+  deliveryId      String
+  delivery        Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  consumableId    String
+  consumable      Consumable @relation(fields: [consumableId], references: [id])
+  batchNo         String
+  expiryDate      DateTime
+  deliveredQty    Int
+  acceptedQty     Int      @default(0)
+  photoUrls       String[]
+  remark          String?
+}
+
+// ========== 库存模块 ==========
+
+model Inventory {
+  id            String   @id @default(cuid())
+  consumableId  String
+  consumable    Consumable @relation(fields: [consumableId], references: [id])
+  batchNo       String
+  expiryDate    DateTime
+  quantity      Int
+  location      String
+  supplierId    String
+  supplier      Supplier @relation(fields: [supplierId], references: [id])
+  isConsignment Boolean  @default(false)
+  unitPrice     Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+
+  usageRecordItems UsageRecordItem[]
+}
+
+// ========== 领用模块 ==========
+
+model Requisition {
+  id           String   @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  status       String   @default("pending") // pending | fulfilled | partial | cancelled
+  createdAt    DateTime @default(now())
+
+  items RequisitionItem[]
+}
+
+model RequisitionItem {
+  id            String      @id @default(cuid())
+  requisitionId String
+  requisition   Requisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  consumableId  String
+  consumable    Consumable  @relation(fields: [consumableId], references: [id])
+  requestedQty  Int
+  fulfilledQty  Int         @default(0)
+  status        String      @default("pending") // pending | fulfilled | partial
+}
+
+// ========== 使用记录模块 ==========
+
+model UsageRecord {
+  id             String     @id @default(cuid())
+  departmentId   String
+  department     Department @relation(fields: [departmentId], references: [id])
+  operatingRoom  String
+  usedAt         DateTime
+  createdAt      DateTime   @default(now())
+
+  items UsageRecordItem[]
+}
+
+model UsageRecordItem {
+  id            String      @id @default(cuid())
+  usageRecordId String
+  usageRecord   UsageRecord @relation(fields: [usageRecordId], references: [id], onDelete: Cascade)
+  consumableId  String
+  consumable    Consumable  @relation(fields: [consumableId], references: [id])
+  inventoryId   String
+  inventory     Inventory   @relation(fields: [inventoryId], references: [id])
+  usedQty       Int
+  isImplant     Boolean     @default(false)
+  patientId     String?
+}
+
+// ========== 结算模块 ==========
+
+model Settlement {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  month      String   // YYYY-MM
+  totalAmount Decimal  @db.Decimal(14, 2)
+  status     String   @default("draft") // draft | confirmed | paid
+  createdAt  DateTime @default(now())
+
+  items SettlementItem[]
+}
+
+model SettlementItem {
+  id           String     @id @default(cuid())
+  settlementId String
+  settlement   Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  consumableId String
+  consumable   Consumable @relation(fields: [consumableId], references: [id])
+  quantity     Int
+  unitPrice    Decimal    @db.Decimal(12, 2)
+  amount       Decimal    @db.Decimal(14, 2)
+}
