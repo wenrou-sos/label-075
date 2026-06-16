@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, User } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 
 const departments = ["心内科", "骨科", "眼科", "神经外科", "普外科", "泌尿外科", "妇产科", "ICU"];
 
@@ -52,6 +53,8 @@ export default function Header({
       </nav>
 
       <div className="flex items-center gap-4">
+        <NotificationBell />
+
         <div ref={deptRef} className="relative">
           <button
             onClick={() => setDeptOpen(!deptOpen)}
