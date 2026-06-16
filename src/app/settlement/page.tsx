@@ -51,7 +51,7 @@ export default function SettlementPage() {
     const promises =
       activeTab === "department"
         ? [fetch(`/api/settlement/department?month=${month}`).then((r) => r.json())]
-        : [fetch("/api/settlement/supplier").then((r) => r.json())];
+        : [fetch(`/api/settlement/supplier?month=${month}`).then((r) => r.json())];
 
     Promise.all(promises)
       .then(([data]) => {
@@ -72,7 +72,7 @@ export default function SettlementPage() {
     try {
       const res = await fetch("/api/settlement/supplier", { method: "POST" });
       if (res.ok) {
-        const updated = await fetch("/api/settlement/supplier").then((r) => r.json());
+        const updated = await fetch(`/api/settlement/supplier?month=${month}`).then((r) => r.json());
         setSettlements(updated);
       }
     } finally {
@@ -96,7 +96,14 @@ export default function SettlementPage() {
       { key: "totalAmount", header: "结算金额", render: (row) => formatCurrency(row.totalAmount) },
       { key: "status", header: "状态", render: (row) => statusTextMap[row.status] || row.status },
     ];
-    exportToCsv(settlements, columns, `${month}-供应商结算.csv`);
+    const uniqueMonths = [...new Set(settlements.map((s) => s.month))].sort();
+    const monthLabel =
+      uniqueMonths.length === 0
+        ? month
+        : uniqueMonths.length === 1
+          ? uniqueMonths[0]
+          : `${uniqueMonths[0]}至${uniqueMonths[uniqueMonths.length - 1]}`;
+    exportToCsv(settlements, columns, `${monthLabel}-供应商结算.csv`);
   };
 
   const deptColumns: Column<DepartmentSummary>[] = [
@@ -171,40 +178,42 @@ export default function SettlementPage() {
         </div>
       )}
 
-      <div className="flex border-b border-border">
-        <button
-          onClick={() => setActiveTab("department")}
-          className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "department"
-              ? "border-accent text-accent"
-              : "border-transparent text-text-secondary hover:text-text"
-          }`}
-        >
-          科室领用统计
-        </button>
-        <button
-          onClick={() => setActiveTab("supplier")}
-          className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "supplier"
-              ? "border-accent text-accent"
-              : "border-transparent text-text-secondary hover:text-text"
-          }`}
-        >
-          供应商结算
-        </button>
+      <div className="flex items-center justify-between">
+        <div className="flex border-b border-border flex-1">
+          <button
+            onClick={() => setActiveTab("department")}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "department"
+                ? "border-accent text-accent"
+                : "border-transparent text-text-secondary hover:text-text"
+            }`}
+          >
+            科室领用统计
+          </button>
+          <button
+            onClick={() => setActiveTab("supplier")}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "supplier"
+                ? "border-accent text-accent"
+                : "border-transparent text-text-secondary hover:text-text"
+            }`}
+          >
+            供应商结算
+          </button>
+        </div>
+        <div className="flex items-center gap-3 pb-1 ml-4">
+          <label className="text-sm text-text-secondary">月份：</label>
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-border rounded-lg bg-card text-text focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+          />
+        </div>
       </div>
 
       {activeTab === "department" && (
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-text-secondary">选择月份：</label>
-            <input
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-border rounded-lg bg-card text-text focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
-            />
-          </div>
           {loading ? (
             <SkeletonRow />
           ) : (

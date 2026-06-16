@@ -2,13 +2,27 @@ import { NextResponse } from 'next/server';
 import { settlements, usageRecords, inventory, suppliers, consumables } from '@/lib/mock-data';
 import type { Settlement } from '@/lib/types';
 
-export async function GET() {
-  return NextResponse.json(settlements);
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const month = searchParams.get("month");
+  const filtered = month
+    ? settlements.filter((s) => s.month === month)
+    : settlements;
+  return NextResponse.json(filtered);
 }
 
-export async function POST() {
-  const currentDate = new Date();
-  const month = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+export async function POST(request: Request) {
+  let month: string;
+  try {
+    const body = await request.json();
+    month = body?.month;
+  } catch {
+    month = null;
+  }
+  if (!month) {
+    const currentDate = new Date();
+    month = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+  }
 
   const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
   const consumableMap = new Map(consumables.map((c) => [c.id, c]));
